@@ -142,6 +142,7 @@ void Solver<Dtype>::InitTestNets() {
   }
   int test_net_id = 0;
   vector<string> sources(num_test_net_instances);
+  // LOG(INFO) << "num_test_net_instances:" << num_test_net_instances;
   vector<NetParameter> net_params(num_test_net_instances);
   for (int i = 0; i < num_test_net_params; ++i, ++test_net_id) {
       sources[test_net_id] = "test_net_param";
@@ -327,6 +328,7 @@ void Solver<Dtype>::TestAll() {
   for (int test_net_id = 0;
        test_net_id < test_nets_.size() && !requested_early_exit_;
        ++test_net_id) {
+    LOG(INFO) << "test_nets_.size():" << test_nets_.size();
     Test(test_net_id);
   }
 }
@@ -364,6 +366,7 @@ void Solver<Dtype>::Test(const int test_net_id) {
     if (param_.test_compute_loss()) {
       loss += iter_loss;
     }
+    LOG(INFO) << "result.size():" << result.size();
     if (i == 0) {
       for (int j = 0; j < result.size(); ++j) {
         const Dtype* result_vec = result[j]->cpu_data();
@@ -390,6 +393,7 @@ void Solver<Dtype>::Test(const int test_net_id) {
     loss /= param_.test_iter(test_net_id);
     LOG(INFO) << "Test loss: " << loss;
   }
+  LOG(INFO) << "test_score.size():" << test_score.size();
   for (int i = 0; i < test_score.size(); ++i) {
     const int output_blob_index =
         test_net->output_blob_indices()[test_score_output_id[i]];

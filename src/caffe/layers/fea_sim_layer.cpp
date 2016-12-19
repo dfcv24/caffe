@@ -35,6 +35,7 @@ void FeaSimLayer<Dtype>::Reshape(
 
   vector<int> sz;
   sz.push_back(channels_);
+  pow_p_.Reshape(sz);
   sz[0] = bottom[0]->shape(0);
   batch_sum_multiplier_.Reshape(sz);
   temp_.ReshapeLike(*bottom[0]);
@@ -82,9 +83,14 @@ void FeaSimLayer<Dtype>::Forward_cpu(
     diff_.cpu_data(),
     Dtype(2),
     pow_diff_.mutable_cpu_data());
-  //diff divide by param -p
+  //diff divide by param -p^2
+  caffe_powx(
+    channels_,
+    this->blobs_[0]->cpu_data(),
+    Dtype(2),
+    pow_p_.mutable_cpu_data());
   caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, num, channels_, 1, 1,
-      batch_sum_multiplier_.cpu_data(), this->blobs_[0]->cpu_data(), 0.,
+      batch_sum_multiplier_.cpu_data(), pow_p_.cpu_data(), 0.,
       num_by_chans_.mutable_cpu_data());
   caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, channels_ * num,
       spatial_dim, 1, 1., num_by_chans_.cpu_data(),
@@ -94,11 +100,17 @@ void FeaSimLayer<Dtype>::Forward_cpu(
     pow_diff_.cpu_data(),
     temp_.cpu_data(),
     win_diff_.mutable_cpu_data());
+  caffe_cpu_scale(
+    count,
+    Dtype(-1),
+    win_diff_.cpu_data(),
+    win_diff_.mutable_cpu_data());
   //make a exp
   caffe_exp(
     count,
     win_diff_.cpu_data(),
     top[0]->mutable_cpu_data());
+  //LOG(INFO) << "top[0]->count: " << top[0]->count();
 }
 
 template <typename Dtype>
@@ -106,6 +118,9 @@ void FeaSimLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
   int count = bottom[0]->count();
   int num = bottom[0]->shape(0);
+  CHECK_GT(num, 0) << "height gets the error value";
+  CHECK_GT(count, 0) << "count gets the error value";
+  //LOG(INFO) << "the program had come here";
   int spatial_dim = bottom[0]->count()/(bottom[0]->shape(0)*channels_);
   caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, num, channels_, 1, 1,
       batch_sum_multiplier_.cpu_data(), this->blobs_[0]->cpu_data(), 0.,
@@ -127,16 +142,17 @@ void FeaSimLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   caffe_sub(count, bottom[0]->cpu_data(), bottom[1]->cpu_data(), temp_.mutable_cpu_data());
   caffe_powx(count, temp_.cpu_data(), Dtype(2), temp_.mutable_cpu_data());
     //blob[0]pow2
-  caffe_powx(count, temp_p_.cpu_data(), Dtype(2), temp_p_.mutable_cpu_data());
+  caffe_powx(count, temp_p_.cpu_data(), Dtype(3), temp_p_.mutable_cpu_data());
     //blob[0]diff
   caffe_mul(count, top[0]->cpu_diff(), top[0]->cpu_data(), temp_blob_.mutable_cpu_data());
   caffe_mul(count, temp_blob_.cpu_data(), temp_.cpu_data(), temp_blob_.mutable_cpu_data());
   caffe_div(count, temp_blob_.cpu_data(), temp_p_.cpu_data(), temp_blob_.mutable_cpu_data());
-  caffe_cpu_scale(count, Dtype(-1), temp_blob_.cpu_data(), temp_blob_.mutable_cpu_data());
+  caffe_cpu_scale(count, Dtype(2), temp_blob_.cpu_data(), temp_blob_.mutable_cpu_data());
   caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, num * channels_, 1, spatial_dim ,1.,
     temp_blob_.cpu_data(), spatial_sum_multiplier_.cpu_data(), 0., num_by_chans_.mutable_cpu_data());
   caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, 1, channels_, num, 1.,
     batch_sum_multiplier_.cpu_data(), num_by_chans_.cpu_data(), 0., this->blobs_[0]->mutable_cpu_diff());
+  //LOG(INFO) << "the program had come here";
 }
 
 #ifdef CPU_ONLY

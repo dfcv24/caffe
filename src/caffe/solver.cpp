@@ -219,6 +219,7 @@ void Solver<Dtype>::Step(int iters) {
     net_->set_debug_info(display && param_.debug_info());
     // accumulate the loss and gradient
     Dtype loss = 0;
+    // std::cerr << "error maybe in ForwardBackward()\n";
     for (int i = 0; i < param_.iter_size(); ++i) {
       loss += net_->ForwardBackward();
     }
@@ -228,16 +229,23 @@ void Solver<Dtype>::Step(int iters) {
     if (display) {
       LOG_IF(INFO, Caffe::root_solver()) << "Iteration " << iter_
           << ", loss = " << smoothed_loss_;
+      //std::cerr << "input blobs num:" << net_->num_inputs();
+      //std::cerr << "output blobs num:" << net_->num_outputs();
       const vector<Blob<Dtype>*>& result = net_->output_blobs();
+      //std::cerr << "everything ok before here" << std::endl;
       int score_index = 0;
       for (int j = 0; j < result.size(); ++j) {
         const Dtype* result_vec = result[j]->cpu_data();
+        //std::cerr << "result_vec:" << *result_vec << std::endl;
         const string& output_name =
             net_->blob_names()[net_->output_blob_indices()[j]];
         const Dtype loss_weight =
             net_->blob_loss_weights()[net_->output_blob_indices()[j]];
+        //std::cerr << "everything ok before here2" << std::endl;
         for (int k = 0; k < result[j]->count(); ++k) {
+          //std::cerr << "everything ok before here3" << std::endl;
           ostringstream loss_msg_stream;
+          //std::cerr << "everything ok before here4" << std::endl;
           if (loss_weight) {
             loss_msg_stream << " (* " << loss_weight
                             << " = " << loss_weight * result_vec[k] << " loss)";
@@ -248,10 +256,13 @@ void Solver<Dtype>::Step(int iters) {
         }
       }
     }
+    //std::cerr << "everything ok before here5" << std::endl;
     for (int i = 0; i < callbacks_.size(); ++i) {
       callbacks_[i]->on_gradients_ready();
     }
+    //std::cerr << "everything ok before here6" << std::endl;
     ApplyUpdate();
+    //std::cerr << "everything ok before here7" << std::endl;
 
     // Increment the internal iter_ counter -- its value should always indicate
     // the number of times the weights have been updated.
@@ -328,7 +339,7 @@ void Solver<Dtype>::TestAll() {
   for (int test_net_id = 0;
        test_net_id < test_nets_.size() && !requested_early_exit_;
        ++test_net_id) {
-    LOG(INFO) << "test_nets_.size():" << test_nets_.size();
+    // LOG(INFO) << "test_nets_.size():" << test_nets_.size();
     Test(test_net_id);
   }
 }
@@ -359,17 +370,17 @@ void Solver<Dtype>::Test(const int test_net_id) {
       // break out of test loop.
       break;
     }
-
+    // std::cerr << "blocking data after here";
     Dtype iter_loss;
     const vector<Blob<Dtype>*>& result =
         test_net->Forward(&iter_loss);
     if (param_.test_compute_loss()) {
       loss += iter_loss;
     }
-    LOG(INFO) << "result.size():" << result.size();
     if (i == 0) {
       for (int j = 0; j < result.size(); ++j) {
         const Dtype* result_vec = result[j]->cpu_data();
+        // std::cerr << "blocking data after here2:" << *result_vec << "end\n";
         for (int k = 0; k < result[j]->count(); ++k) {
           test_score.push_back(result_vec[k]);
           test_score_output_id.push_back(j);
@@ -386,14 +397,14 @@ void Solver<Dtype>::Test(const int test_net_id) {
     }
   }
   if (requested_early_exit_) {
-    LOG(INFO)     << "Test interrupted.";
+    LOG(INFO) << "Test interrupted.";
     return;
   }
   if (param_.test_compute_loss()) {
     loss /= param_.test_iter(test_net_id);
     LOG(INFO) << "Test loss: " << loss;
   }
-  LOG(INFO) << "test_score.size():" << test_score.size();
+  // LOG(INFO) << "test_score.size():" << test_score.size();
   for (int i = 0; i < test_score.size(); ++i) {
     const int output_blob_index =
         test_net->output_blob_indices()[test_score_output_id[i]];

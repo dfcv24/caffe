@@ -106,11 +106,14 @@ void SGDSolver<Dtype>::ApplyUpdate() {
     LOG(INFO) << "Iteration " << this->iter_ << ", lr = " << rate;
   }
   ClipGradients();
+  //std::cerr << "this->net_->learnable_params().size():" << this->net_->learnable_params().size() << std::endl;
   for (int param_id = 0; param_id < this->net_->learnable_params().size();
        ++param_id) {
+    //td::cerr << "param name:" << this->net_->param_display_names()[param_id] << std::endl;
     Normalize(param_id);
     Regularize(param_id);
     ComputeUpdateValue(param_id, rate);
+    //std::cerr << "everything ok before here8" << std::endl;
   }
   this->net_->Update();
 }
@@ -218,9 +221,11 @@ void SGDSolver<Dtype>::ComputeUpdateValue(int param_id, Dtype rate) {
   // Compute the update to history, then copy it to the parameter diff.
   switch (Caffe::mode()) {
   case Caffe::CPU: {
+    //std::cerr << "everything ok before here9:" << param_id << std::endl;
     caffe_cpu_axpby(net_params[param_id]->count(), local_rate,
               net_params[param_id]->cpu_diff(), momentum,
               history_[param_id]->mutable_cpu_data());
+    //std::cerr << "everything ok before here10 :" << param_id << std::endl;
     caffe_copy(net_params[param_id]->count(),
         history_[param_id]->cpu_data(),
         net_params[param_id]->mutable_cpu_diff());

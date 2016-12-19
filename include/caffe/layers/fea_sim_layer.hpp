@@ -34,7 +34,7 @@ class FeaSimLayer : public Layer<Dtype> {
       const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
   virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
      const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
-  Blob<Dtype> temp_, diff_, pow_diff_, win_diff_, temp_p_, temp_sub_, temp_blob_;
+  Blob<Dtype> temp_, diff_, pow_diff_, win_diff_, temp_p_, temp_sub_, temp_blob_, pow_p_;
   int channels_;
   // extra temporarary variables is used to carry out sums/broadcasting
   // using BLAS

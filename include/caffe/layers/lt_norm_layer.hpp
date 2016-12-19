@@ -34,7 +34,7 @@ class LtNormLayer : public Layer<Dtype> {
   virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
      const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
 
-  Blob<Dtype> temp_, mul_temp_;
+  Blob<Dtype> temp_, mul_temp_, pow_temp_;
   int count_, num_;
   // extra temporarary variables is used to carry out sums/broadcasting
   // using BLAS
